@@ -459,8 +459,10 @@ sub cmd_check {
 
     # step 3: check devices for each host
     print "Checking devices...\n";
-    printf "  host device      %10s %10s %10s %7s  %7s   %4s\n", 'size(G)', 'used(G)', 'free(G)', 'use% ', 'ob state', 'I/O%';
-    printf "  ---- ------------ ---------- ---------- ---------- ------ ---------- -----\n";
+    printf "  host device      %10s %10s %10s %7s  %7s  %4s %4s  %4s\n", 
+        'size(G)', 'used(G)', 'free(G)', 'use% ', 'ob state', 'await', 'svctm', 'I/O%';
+
+    printf "  ---- ------------ ---------- ---------- ---------- ------ ---------- ----- ----- -----\n";
     my %total;
     # Initialize to zero so that the total outputs doesn't need to check for undefined.
     map { $total{$_} = 0; } qw(total used avail);
@@ -494,10 +496,17 @@ sub cmd_check {
 
                 $dev->{utilization}  = 0 if (!defined($dev->{utilization}) || 
                                               $dev->{utilization} !~ /\A\d+(\.\d+)?\Z/);
-                printf("     %10.3f %10.3f %10.3f %6.2f%%  %-7s %5.1f\n",
+                $dev->{await}  = 0 if (!defined($dev->{await}) || 
+                                              $dev->{await} !~ /\A\d+(\.\d+)?\Z/);
+                $dev->{svctm}  = 0 if (!defined($dev->{svctm}) || 
+                                              $dev->{svctm} !~ /\A\d+(\.\d+)?\Z/);
+                printf("     %10.3f %10.3f %10.3f %6.2f%%  %-7s %5.1f %5.1f %5.1f\n",
                        (map { $data{$_} } qw(total used avail)),
                        $pct, ($dev->{observed_state} || "?"),
-                       $dev->{utilization});
+                       $dev->{await},
+                       $dev->{svctm},
+                       $dev->{utilization},
+                       );
             } else {
                 print "REQUEST FAILURE\n";
             }
