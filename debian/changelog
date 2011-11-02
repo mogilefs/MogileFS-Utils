@@ -1,3 +1,9 @@
+mogilefs-utils (2.21-0mit1) oneiric; urgency=low
+
+  * New upstream version
+
+ -- Kiall Mac Innes <kiall@managedit.ie>  Wed, 02 Nov 2011 23:42:56 +0000
+
 mogilefs-utils (0.01-1) unstable; urgency=low
 
   * Initial release
