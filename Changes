@@ -1,3 +1,7 @@
+2.21 -- 2011-12-16
+
+   * Add "mogrename" utility script (kwilczynski, Krzysztof Wilczynski).
+
 2.21 -- 2011-10-29
 
    * Improve error handling for broken usage files in `mogadm check`
@@ -5,7 +9,7 @@
 2.20 -- 2011-06-15
 
    * Remove redundant tracker calls. Required for MogileFS::Server 2.50 as
-     the redundant commands are now cached harder. 
+     the redundant commands are now cached harder.
      (dormando <dormando@rydia.net>)
 
 2.19 -- 2011-01-08
