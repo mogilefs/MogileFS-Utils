@@ -10,7 +10,7 @@ WriteMakefile(
     ABSTRACT                    => 'MogileFS utilities',
     EXE_FILES                   => ['mogtool', 'mogadm', 'mogstats',
         'mogupload', 'mogfetch', 'mogdelete', 'mogfileinfo', 'moglistkeys',
-        'moglistfids', 'mogfiledebug',
+        'moglistfids', 'mogfiledebug', 'mogrename',
                                    ],
     PREREQ_PM                   => {
         'LWP::Simple'      => 0,

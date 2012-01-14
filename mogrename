@@ -1,0 +1,76 @@
+#!/usr/bin/perl
+
+=head1 NAME
+
+mogrename -- Rename file (key) from one key to another
+
+=head1 SYNOPSIS
+
+$ mogrename [OPTIONS] --old-key='/hello.jpg' --new-key='/bye.jpg'
+
+$ mogupload --trackers=host --domain=foo --class=bar \
+--old-key='/hello.jpg' --new-key='/bye.jpg'
+
+$ mogupload --trackers=host1:7001,host2:7001 --domain=foo --class=bar \
+--old-key='/hello.jpg' --new-key='/bye.jpg'
+
+=head1 OPTIONS
+
+=over
+
+=item --trackers=host1:7001,host2:7001
+
+Use these MogileFS trackers to negotiate with.
+
+=item --domain=<domain>
+
+Set the MogileFS domain to use.
+
+=item --class=<class>
+
+Set the class to use. Will use default class if not specified.
+
+=item --old-key='<old key>'
+
+An old key to rename the file from. Can be an arbitrary string.
+
+=item --new-key='<new key>'
+
+A new key to rename the file to. Can be an arbitrary string.
+
+=back
+
+=head1 AUTHOR
+
+Krzysztof Wilczynski E<lt>L<krzysztof.wilczynski@linux.com>E<gt>
+
+=head1 BUGS
+
+None for this release. Please report any issues found.
+
+=head1 LICENSE
+
+Licensed for use and redistribution under the same terms as Perl itself.
+
+=cut
+
+use strict;
+use warnings;
+
+use lib './lib';
+use MogileFS::Utils;
+
+my $utils = MogileFS::Utils->new;
+
+my $usage = "--trackers=host --domain=foo --class=bar "
+          . "--old-key='/hello.jpg' --new-key='/bye.jpg'";
+
+my $options = $utils->getopts($usage, qw(old-key=s new-key=s));
+
+my $mogile_client = $utils->client;
+
+$mogile_client->rename($options->{'old-key'}, $options->{'new-key'});
+
+if ($mogile_client->errcode) {
+    die "Error renaming file (key) from " . $mogile_client->errstr;
+}
