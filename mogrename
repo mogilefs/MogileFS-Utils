@@ -6,13 +6,13 @@ mogrename -- Rename file (key) from one key to another
 
 =head1 SYNOPSIS
 
-    $ mogrename [OPTIONS] --old-key='/hello.jpg' --new-key='/bye.jpg'
+    $ mogrename [OPTIONS] --old_key='/hello.jpg' --new_key='/bye.jpg'
 
     $ mogupload --trackers=host --domain=foo --class=bar \
-                --old-key='/hello.jpg' --new-key='/bye.jpg'
+                --old_key='/hello.jpg' --new_key='/bye.jpg'
 
     $ mogupload --trackers=host1:7001,host2:7001 --domain=foo --class=bar \
-                --old-key='/hello.jpg' --new-key='/bye.jpg'
+                --old_key='/hello.jpg' --new_key='/bye.jpg'
 
 =head1 OPTIONS
 
@@ -30,11 +30,11 @@ Set the MogileFS domain to use.
 
 Set the class to use. Will use default class if not specified.
 
-=item --old-key='<old key>'
+=item --old_key='<old key>'
 
 An old key to rename the file from. Can be an arbitrary string.
 
-=item --new-key='<new key>'
+=item --new_key='<new key>'
 
 A new key to rename the file to. Can be an arbitrary string.
 
