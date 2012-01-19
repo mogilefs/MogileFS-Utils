@@ -159,7 +159,7 @@ foreach my $fn (reverse @configs) {
     open FILE, "<$fn"
         or die "unable to open $fn: $!\n";
     while (<FILE>) {
-        s/\#.*//;
+        s/\s+#.*//;
         next unless m/^\s*(\w+)\s*=\s*(.+?)\s*$/;
         $opts{$1} = $2 unless ( defined $opts{$1} );
     }
