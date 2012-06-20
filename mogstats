@@ -423,7 +423,7 @@ sub stats_for_devices {
 }
 
 sub stats_for_files_sql {
-    my $sql = 'SELECT dmid, classid, COUNT(classid), sum(length), sum(length::int4 * devcount::int4) FROM file GROUP BY 1, 2';
+    my $sql = 'SELECT dmid, classid, COUNT(classid), sum(length), sum(length::int8 * devcount::int8) FROM file GROUP BY 1, 2';
     return $sql if ($DB_TYPE eq 'Postgres');
     $sql =~ s/::int4//g;
     return $sql;
