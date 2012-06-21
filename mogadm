@@ -439,9 +439,8 @@ sub cmd_check {
 
     # step 2: now hit each of the hosts for responsiveness
     print "Checking hosts...\n";
+
     my @urls;
-
-
     my $cv       = AnyEvent->condvar;
     my $timeout  = 10;
     $cv->begin (sub { shift->send() } );
@@ -455,11 +454,11 @@ sub cmd_check {
                 timeout  => $timeout,
                 sub {
                     my ($body, $hdr) = @_;
+                    printf "  [%2d] %s ... ", $hostid, $hosts->{$hostid}->{hostname} ;
                     if ( $hdr->{Status} =~ m{^(?:2|3)\d+$} ) {
-                        printf "  [%2d] %s ... %s\n", $hostid, $hosts->{$hostid}->{hostname}, "OK";
+                        print "OK\n";
                         push @urls, [ $hostid, $url ];
                     } else {
-                        printf "  [%2d] %s ... ", $hostid, $hosts->{$hostid}->{hostname} ;
                         print "REQUEST FAILURE FETCHING: ", $url, "\n";
                     }
                     undef $request;
