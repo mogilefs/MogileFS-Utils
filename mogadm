@@ -4,7 +4,8 @@
 use strict;
 use warnings;
 use Getopt::Long;
-use LWP::Simple;  # FIXME: use of this makes 'mog check' hang too long when multiple things down
+use AnyEvent;
+use AnyEvent::HTTP;
 use Socket;
 
 my @topcmds = qw(check stats host device domain class slave fsck rebalance settings);
@@ -283,12 +284,12 @@ my %opts;
 
 Getopt::Long::Configure("require_order", "pass_through");
 GetOptions(
-        "trackers=s" => \$opts{trackers},
-        "config=s"   => \$opts{config},
-        "lib=s"      => \$opts{lib},
-        "help"       => \$opts{help},
-        "verbose"    => \$opts{verbose},
-    ) or abortWithUsage();
+    "trackers=s" => \$opts{trackers},
+    "config=s"   => \$opts{config},
+    "lib=s"      => \$opts{lib},
+    "help"       => \$opts{help},
+    "verbose"    => \$opts{verbose},
+) or abortWithUsage();
 Getopt::Long::Configure("require_order", "no_pass_through");
 
 my @configs = ($opts{config}, "$ENV{HOME}/.mogilefs.conf", "/etc/mogilefs/mogilefs.conf");
@@ -376,7 +377,7 @@ if (my $opts = $cmdinfo->{opts}) {
     my %getopts;
     foreach (keys %$opts) {
         my $k = $_;
-        next if $k =~ /^</;  # don't care about these.
+        next if $k =~ /^</;     # don't care about these.
         die "BOGUS KEY: '$k'" unless $k =~ /^--([\w\-]+)(=.+)?$/;
         my ($oname, $type) = ($1, $2 || "");
         $getopts{"$oname$type"} = \$cmdargs{$1};
@@ -439,21 +440,39 @@ sub cmd_check {
     # step 2: now hit each of the hosts for responsiveness
     print "Checking hosts...\n";
     my @urls;
+
+
+    my $cv       = AnyEvent->condvar;
+    my $timeout  = 10;
+    $cv->begin (sub { shift->send() } );
     foreach my $hostid (sort { $a <=> $b } keys %$hosts) {
-        printf "  [%2d] %s ... ", $hostid, $hosts->{$hostid}->{hostname};
+        $cv->begin;
+        my $request;
         if ($hosts->{$hostid}->{status} eq 'alive') {
             my $url = 'http://' . $hosts->{$hostid}->{hostip} . ':' . $hosts->{$hostid}->{http_port} . '/';
-            my $file = get($url);
-            if (defined $file) {
-                print "OK\n";
-                push @urls, [ $hostid, $url ];
-            } else {
-                print "REQUEST FAILURE FETCHING: $url\n";
-            }
+            $request = http_request(
+                GET      => $url,
+                timeout  => $timeout,
+                sub {
+                    my ($body, $hdr) = @_;
+                    if ( $hdr->{Status} =~ m{^(?:2|3)\d+$} ) {
+                        printf "  [%2d] %s ... %s\n", $hostid, $hosts->{$hostid}->{hostname}, "OK";
+                        push @urls, [ $hostid, $url ];
+                    } else {
+                        printf "  [%2d] %s ... ", $hostid, $hosts->{$hostid}->{hostname} ;
+                        print "REQUEST FAILURE FETCHING: ", $url, "\n";
+                    }
+                    undef $request;
+                    $cv->end;
+                }
+            );
         } else {
             print "skipping; status = $hosts->{$hostid}->{status}\n";
         }
     }
+
+    $cv->end;
+    my $foo = $cv->recv;
 
     # everything should be chill
     fail_text('no_devices') unless @urls;
@@ -462,59 +481,76 @@ sub cmd_check {
     # step 3: check devices for each host
     print "Checking devices...\n";
     printf "  host device      %10s %10s %10s %7s  %7s   %4s\n", 'size(G)', 'used(G)', 'free(G)', 'use% ', 'ob state', 'I/O%';
-    printf "  ---- ------------ ---------- ---------- ---------- ------ ---------- -----\n";
+    printf "  ---- ---------    ---------- ---------- ---------- ------ ----------  -----\n";
     my %total;
     # Initialize to zero so that the total outputs doesn't need to check for undefined.
     map { $total{$_} = 0; } qw(total used avail);
 
+    my $condvar = AnyEvent->condvar;
+    $condvar->begin( sub { shift->send() } );
+    $timeout = 60;
     foreach my $hosturl (@urls) {
         my ($hostid, $url) = @$hosturl;
         my $devs = $devices->{$hostid};
-        DEV: foreach my $devid (sort { $a <=> $b } keys %$devs) {
-            my $dev = $devs->{$devid};
-            my $status = $dev->{status} || "??";
+        foreach my $devid ( sort { $a <=> $b } keys %$devs ) {
+            my $dev     = $devs->{$devid};
+            my $status  = $dev->{status} || "??";
             next if $status eq "dead";
+            $condvar->begin;
+            my $req_url = "${url}dev$devid/usage";
+            my $request;
+            $request = http_request(
+                GET       => $req_url,
+                timeout   => $timeout,
+                sub {
+                    my ($body, $hdr)= @_;
+                    if ( $hdr->{Status} !~ m{^(?:2|3)\d+$} ) {
+                        print "REQUEST FAILURE FETCHING: $url" . "dev$devid/usage\n";
+                    } elsif ( length($body) < 1 ) {
+                        print "USAGE FILE BROKEN OR EMPTY: $url" . "dev$devid/usage\n";
+                    } else {
+                        my %data = ( map { split(/:\s+/, $_) } split(/\r?\n/, $body) );
+                        foreach (qw(time used total avail)) {
+                            $data{$_} = 0 if (!$data{$_} ||
+                                                  $data{$_} !~ /\A\d+(\.\d+)?\Z/);
+                        }
+                        my $flag = 0;
+                        foreach (qw(available device disk)) {
+                            if (! exists $data{$_} || !$data{$_}) {
+                                print "MISSING FIELD ($_) FROM BODY FILE: $url" . "dev$devid/body\n";
+                                $flag = 1;
+                            }
+                        }
+                        if (!$flag) {
+                            $data{age} = $now - $data{time};
+                            $data{used} /= 1024**2;
+                            $data{total} /= 1024**2;
+                            $data{available} /= 1024**2;
+                            $data{avail} = $data{available};
+                            my $pct = 100 - $data{available}/$data{total}*100;
+                            $total{used} += $data{used};
+                            $total{avail} += $data{avail};
+                            $total{total} += $data{total};
 
-            printf "  [%2d] %-7s", $hostid, "dev$devid";
+                            $dev->{utilization}  = 0 if (!defined($dev->{utilization}) || 
+                                                             $dev->{utilization} !~ /\A\d+(\.\d+)?\Z/);
+                            printf("  [%2d] %-7s", $hostid, "dev$devid");
+                            printf("   %12.3f %10.3f %10.3f %6.2f%%  %-10s %-5.1f\n",
+                                   (map { $data{$_} } qw(total used avail)),
+                                   $pct, ($dev->{observed_state} || "?"),
+                                   $dev->{utilization});
 
-            my $usage = get($url . "/dev$devid/usage");
-            if (! defined $usage) {
-                print "REQUEST FAILURE FETCHING: $url" . "dev$devid/usage\n";
-                next;
-            }
-            if (length($usage) < 1) {
-                print "USAGE FILE BROKEN OR EMPTY: $url" . "dev$devid/usage\n";
-                next;
-            }
-            my %data = ( map { split(/:\s+/, $_) } split(/\r?\n/, $usage) );
-            foreach (qw(time used total avail)) {
-                $data{$_} = 0 if (!$data{$_} || 
-                                   $data{$_} !~ /\A\d+(\.\d+)?\Z/); 
-            }
-            foreach (qw(available device disk)) {
-                if (! exists $data{$_} || !$data{$_}) {
-                    print "MISSING FIELD ($_) FROM USAGE FILE: $url" . "dev$devid/usage\n";
-                    next DEV;
-                }
-            }
-            $data{age} = $now - $data{time};
-            $data{used} /= 1024**2;
-            $data{total} /= 1024**2;
-            $data{available} /= 1024**2;
-            $data{avail} = $data{available};
-            my $pct = 100 - $data{available}/$data{total}*100;
-            $total{used} += $data{used};
-            $total{avail} += $data{avail};
-            $total{total} += $data{total};
-
-            $dev->{utilization}  = 0 if (!defined($dev->{utilization}) || 
-                                          $dev->{utilization} !~ /\A\d+(\.\d+)?\Z/);
-            printf("     %10.3f %10.3f %10.3f %6.2f%%  %-7s %5.1f\n",
-                   (map { $data{$_} } qw(total used avail)),
-                   $pct, ($dev->{observed_state} || "?"),
-                   $dev->{utilization});
+                        }
+                    }
+                    undef $request;
+                    $condvar->end;
+                },
+            );
         }
     }
+    $condvar->end;
+    $foo = $condvar->recv;
+
     my $pct = 0;
     # Avoid division by zero
     $pct = 100 - $total{avail}/$total{total}*100 if($total{total} > 0);
@@ -522,7 +558,6 @@ sub cmd_check {
     printf "  ---- ------------ ---------- ---------- ---------- ------\n";
     printf "             total:%10.3f %10.3f %10.3f %6.2f%%\n", (map { $total{$_} } qw(total used avail)), $pct;
 
-    # if we get here, all's well
     ok();
 }
 
@@ -640,7 +675,7 @@ sub cmd_domain_list {
             my $dom = $domains->{$domain}->{$class};
             printf " %-20s %-20s      %-8d %-13s %-7s\n", $domain, $class,
                 $dom->{mindevcount} || 0, $dom->{replpolicy} || '',
-                $dom->{hashtype} || '';
+                    $dom->{hashtype} || '';
         }
         print "\n";
     }
@@ -1009,9 +1044,9 @@ sub cmd_fsck_reset {
     my $mogadm = mogadm();
     my $args = shift;
     my $res = $mogadm->fsck_reset(
-                                  policy_only => $args->{"policy-only"},
-                                  startpos => $args->{"startpos"},
-                                  )
+        policy_only => $args->{"policy-only"},
+        startpos => $args->{"startpos"},
+    )
         or fail($mogadm->errstr);
     ok("fsck stopped");
 }
@@ -1065,9 +1100,9 @@ sub cmd_fsck_status {
         or fail("can't get fsck status");
 
     my %known = map { $_ => 1 } qw(
-                                   current_time
-                                   max_logid
-                                   );
+                                      current_time
+                                      max_logid
+                              );
     my $st = sub {
         my $k = shift;
         $known{$k} = 1;
@@ -1086,10 +1121,10 @@ sub cmd_fsck_status {
 
     $line->("Status",
             $st->('max_fid_checked') . " / " . $st->('end_fid')
-            . " ($perc)");
+                . " ($perc)");
     my $elap = $st->('start_time') ?
         (($st->('stop_time') || $st->('current_time')) - $st->('start_time')) :
-        0;
+            0;
     my $as_time = sub {
         my $s = shift;
         return int($s) . "s" if $s < 60;
@@ -1100,13 +1135,13 @@ sub cmd_fsck_status {
                              $as_time->($elap),
                              sprintf("%0.1f", $per_sec),
                              $as_time->($per_sec ?
-                                        (($st->('end_fid') - $st->('max_fid_checked'))
-                                         / $per_sec) :
-                                        0)));
+                                            (($st->('end_fid') - $st->('max_fid_checked'))
+                                                 / $per_sec) :
+                                                     0)));
 
     $line->("Check Type", ($st->('policy_only') ?
-                           "Repl policy only (skip file checks)" :
-                           "Normal (check policy + files)"));
+                               "Repl policy only (skip file checks)" :
+                                   "Normal (check policy + files)"));
 
     if (my @unk = grep { !$known{$_} } sort keys %$status) {
         print "\n";
@@ -1197,8 +1232,7 @@ sub abort_with_topcmd_help {
         foreach my $opt (sort {
             (substr($b, 0, 1) cmp substr($a, 0, 1)) ||
                 $a cmp $b
-        } keys %{$scv->{opts} || {}})
-        {
+            } keys %{$scv->{opts} || {}}) {
             printf("      %-20s %s\n", $opt, $scv->{opts}->{$opt});
         }
         print "\n";
@@ -1297,7 +1331,7 @@ sub mogadm {
     # plus we leave a bit of time for work.
     my $timeout = 15; 
     $timeout = $opts{timeout} if $opts{timeout} && $opts{timeout} =~ /^[0-9]+$/;
-#    $MogileFS::DEBUG = 2;
+    #    $MogileFS::DEBUG = 2;
     my $mogadm = MogileFS::Admin->new( hosts => $host, timeout => $timeout );
     fail_text('no_mogadm') unless $mogadm;
     return $mogadm;
