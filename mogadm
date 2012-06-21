@@ -507,12 +507,15 @@ sub cmd_check {
             $total{avail} += $data{avail};
             $total{total} += $data{total};
 
-            $dev->{utilization}  = 0 if (!defined($dev->{utilization}) || 
-                                          $dev->{utilization} !~ /\A\d+(\.\d+)?\Z/);
-            printf("     %10.3f %10.3f %10.3f %6.2f%%  %-7s %5.1f\n",
+            my $util = "N/A";
+            if (defined($dev->{utilization}) && $dev->{utilization} =~ /\A\d+(\.\d+)?\Z/) {
+                $util = sprintf("%.1f", $dev->{utilization});
+            }
+
+            printf("     %10.3f %10.3f %10.3f %6.2f%%  %-7s %5s\n",
                    (map { $data{$_} } qw(total used avail)),
                    $pct, ($dev->{observed_state} || "?"),
-                   $dev->{utilization});
+                   $util);
         }
     }
     my $pct = 0;
