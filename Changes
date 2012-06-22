@@ -1,3 +1,7 @@
+2.24 -- 2012-06-21
+
+   * Simple fix for mogstats file length display overflow on Postgres
+
 2.23 -- 2012-03-30
 
    * Support checksums in mogadm (eric wong)
