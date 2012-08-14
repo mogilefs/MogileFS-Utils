@@ -1,3 +1,8 @@
+2.26 -- 2012-08-13
+
+   * Fix from Eric Wong to make IO column display N/A if iostat is broken,
+     rather than 0%
+
 2.25 -- 2012-06-26
 
    * Simple fix fixing the previous fix to work again for all non-Postgres DBs
