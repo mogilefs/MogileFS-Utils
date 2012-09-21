@@ -62,7 +62,7 @@ use MogileFS::Utils;
 
 my $utils = MogileFS::Utils->new;
 
-my $usage = "--trackers=host --domain=foo --class=bar "
+my $usage = "--trackers=host --domain=foo "
           . "--old_key='/hello.jpg' --new_key='/bye.jpg'";
 
 my $options = $utils->getopts($usage, qw(old_key=s new_key=s));
