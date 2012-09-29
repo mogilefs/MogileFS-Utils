@@ -44,10 +44,6 @@ A local file to upload. If '-', read file from STDIN instead.
 
 Dormando E<lt>L<dormando@rydia.net>E<gt>
 
-=head1 BUGS
-
-mogupload must buffer the upload in memory before transferring it. This makes it difficult to upload very large files. Future versions will lift this limitation.
-
 =head1 LICENSE
 
 Licensed for use and redistribution under the same terms as Perl itself.
@@ -70,7 +66,7 @@ my $filename = $c->{file};
 die "Must specify a file to upload with --file" unless $filename;
 
 my $fh;
-my $size = 0;
+my $size;
 if ($filename eq '-') {
     $fh = *STDIN;
 } else {
@@ -79,7 +75,7 @@ if ($filename eq '-') {
     open($fh, "< $filename") or die "Could not open " . $filename;
 }
 
-my $mf = $mogc->new_file($c->{key}, $c->{class}, undef);
+my $mf = $mogc->new_file($c->{key}, $c->{class}, $size);
 if ($mogc->errcode) {
     die "Error opening MogileFS file: " . $mogc->errstr;
 }
