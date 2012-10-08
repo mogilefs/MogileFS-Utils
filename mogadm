@@ -817,7 +817,7 @@ sub cmd_device_list {
         }
         print "$host->{hostname} [$hostid]: $host->{status}\n";
 
-        printf "%6s  %-10s %7s %7s %7s\n", '', '', 'used(G)', 'free(G)', 'total(G)';
+        printf "%6s  %-10s %7s %7s %7s %7s\n", '', '', 'used(G)', 'free(G)', 'total(G)', 'weight(%)';
         foreach my $devid (sort keys %{$devs->{$hostid} || {}}) {
             my $dev = $devs->{$hostid}->{$devid};
             next if $dev->{status} eq "dead" && ! $args->{all};
@@ -825,7 +825,7 @@ sub cmd_device_list {
             my $total = $dev->{mb_total} / 1024;
             my $used = $dev->{mb_used} / 1024;
             my $free = $total - $used;
-            printf "%6s: %-10s %-7.3f %-7.3f %-7.3f\n", "dev$devid", $dev->{status}, $used, $free, $total;
+            printf "%6s: %-10s %-7.3f %-7.3f %-7.3f  % 3u\n", "dev$devid", $dev->{status}, $used, $free, $total, $dev->{weight};
         }
 
         print "\n";
