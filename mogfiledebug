@@ -71,13 +71,19 @@ use LWP::UserAgent;
 my $util = MogileFS::Utils->new;
 my $usage = qq{--trackers=host --domain=foo --key='/hello.jpg' 
 If FID is known, but domain/key are not known:
---trackers=host --domain=anything --fid=123456};
+--trackers=host --fid=123456};
 # FIXME: add "nofetch" mode that just prints paths?
 my $c = $util->getopts($usage, qw/key=s fid=i/);
 
-my $mogc = $util->client;
+my $arg;
+if ($c->{fid}) {
+	$c->{domain} ||= 'mogfiledebug-unset';
+	$arg = 'fid';
+} else {
+	$arg = 'key';
+}
 
-my $arg = $c->{fid} ? 'fid' : 'key';
+my $mogc = $util->client;
 my $details = $mogc->file_debug($arg => $c->{$arg});
 if ($mogc->errcode) {
     die "Error fetching fid info: " . $mogc->errstr;
