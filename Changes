@@ -1,3 +1,14 @@
+2.27 -- 2013-01-11
+
+   * mogupload no longer slurps files into memory if the size is known ahead
+     of time. (Eric Wong)
+
+   * Support "mogadm device (list|summary) --hostname=..." (Eric Wong)
+
+   * Show weight in "mogadm device list" (Eric Wong)
+
+   * mogfiledebug: no longer requires --domain when in --fid mode (Eric Wong)
+
 2.26 -- 2012-08-13
 
    * Fix from Eric Wong to make IO column display N/A if iostat is broken,
