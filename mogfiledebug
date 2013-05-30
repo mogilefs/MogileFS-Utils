@@ -44,6 +44,11 @@ The key to inspect. Can be an arbitrary string.
 A numeric fid to inspect. Provide this as an alternative to a domain/key
 combination.
 
+=item --paths=[print|stat|fetch]
+
+Whether to print, stat, or fetch each path.
+The default is to fetch (and checksum) the contents of all paths.
+
 =back
 
 =head1 AUTHOR
@@ -69,11 +74,17 @@ use Digest::MD5;
 use LWP::UserAgent;
 
 my $util = MogileFS::Utils->new;
-my $usage = qq{--trackers=host --domain=foo --key='/hello.jpg' 
+my $usage = qq{--trackers=host --paths=action --domain=foo --key='/hello.jpg'
 If FID is known, but domain/key are not known:
---trackers=host --fid=123456};
-# FIXME: add "nofetch" mode that just prints paths?
-my $c = $util->getopts($usage, qw/key=s fid=i/);
+--trackers=host --fid=123456
+--paths=action, where action is 'print', 'stat', or 'fetch' (default)};
+my $c = $util->getopts($usage, qw/key=s fid=i paths=s/);
+
+$c->{paths} ||= "fetch";
+if ($c->{paths} !~ /\A(print|stat|fetch)\z/) {
+    print STDERR "$0 $usage\n";
+    exit 1;
+}
 
 my $arg;
 if ($c->{fid}) {
@@ -99,7 +110,24 @@ while (my ($k, $v) = each %$details) {
 }
 
 # If no paths, print something about that.
-if (@paths) {
+if (!@paths) {
+    print "No valid-ish paths found\n";
+} elsif ($c->{paths} eq 'print') {
+    print "Paths...\n";
+    for my $key (@paths) {
+        my $path = $details->{$key};
+        print " - ", $path, "\n";
+    }
+} elsif ($c->{paths} eq 'stat') {
+    my @results;
+    # For each actual path, check its file status
+    print "Checking status of paths...\n";
+    for my $key (@paths) {
+        my $path = $details->{$key};
+        push(@results, stat_path($path));
+    }
+    emit_results(0, \%parts, \@results);
+} elsif ($c->{paths} eq 'fetch') {
     my @results;
     # For each actual path, fetch and calculate the MD5SUM.
     print "Fetching and summing paths...\n";
@@ -107,30 +135,7 @@ if (@paths) {
         my $path = $details->{$key};
         push(@results, fetch_path($path));
     }
-    my $hash; # detect if hashes don't match
-    my $len = $parts{fid}->{length};
-    print "No length, cannot verify content length" unless defined $len;
-    # No I don't have a good excuse for why this isn't one loop.
-    for my $res (@results) {
-        print "\nResults for path: ", $res->{path}, "\n";
-        if ($res->{res} =~ /404/) {
-            print " - ERROR: File copy is missing: ", $res->{res}, "\n";
-            next;
-        }
-        $hash = $res->{hash} unless $hash;
-        if ($hash ne $res->{hash}) {
-            print " - ERROR: Hash does not match first path!\n";
-        }
-        if (defined $len && defined $res->{length} && $len != $res->{length}) {
-            print " - ERROR: Length does not match file row!\n";
-        }
-        print " - MD5 Hash: ", $res->{hash}, "\n";
-        print " - Length: ", $res->{length}, "\n" if defined $res->{length};
-        print " - Last-Modified: ", $res->{mtime}, "\n" if defined $res->{mtime};
-        print " - HTTP result: ", $res->{res}, "\n";
-    }
-} else {
-    print "No valid-ish paths found\n";
+    emit_results(1, \%parts, \@results);
 }
 
 # print info from all of the queues. Raw is fine? failcount/etc.
@@ -187,4 +192,52 @@ sub fetch_path {
     $toret{mtime} = $res->header("Last-Modified");
     $toret{path}  = $path;
     return \%toret;
+}
+
+sub stat_path {
+    my $path = shift;
+    my $ua   = LWP::UserAgent->new;
+    $ua->timeout(10);
+
+    my $res = $ua->head($path);
+
+    my %to_ret = (
+        res    => $res->status_line,
+        mtime  => $res->header("Last-Modified"),
+        length => $res->header("Content-Length"),
+        path   => $path,
+    );
+
+    return \%to_ret;
+}
+
+sub emit_results {
+    my ($need_hash, $parts, $results) = @_;
+
+    my $hash; # detect if hashes don't match
+    my $len = $parts->{fid}->{length};
+    print "No length, cannot verify content length" unless defined $len;
+    # No I don't have a good excuse for why this isn't one loop.
+    for my $res (@$results) {
+        print "\nResults for path: ", $res->{path}, "\n";
+        if ($res->{res} =~ /404/) {
+            print " - ERROR: File copy is missing: ", $res->{res}, "\n";
+            next;
+        }
+
+        if ($need_hash) {
+            $hash ||= $res->{hash};
+            if ($hash ne $res->{hash}) {
+                print " - ERROR: Hash does not match first path!\n";
+            }
+        }
+
+        if (defined $len && defined $res->{length} && $len != $res->{length}) {
+            print " - ERROR: Length does not match file row!\n";
+        }
+        print " - MD5 Hash: ", $res->{hash}, "\n" if $need_hash;
+        print " - Length: ", $res->{length}, "\n" if defined $res->{length};
+        print " - Last-Modified: ", $res->{mtime}, "\n" if defined $res->{mtime};
+        print " - HTTP result: ", $res->{res}, "\n";
+    }
 }
