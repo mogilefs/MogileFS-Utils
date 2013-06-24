@@ -1230,9 +1230,11 @@ sub text {
 
         ######################################################################
         cant_find_module => <<END,
-Unable to find MogileFS::Admin module.  Please ensure that you have the
-module installed in a location in your search path.  Or, add a search path
-to mogadm:
+Error loading modules: $@
+
+Please ensure that you have the MogileFS::Admin and MogileFS::Client
+modules and all necessary dependencies installed in a location in your
+search path.  Or, add a search path to mogadm:
 
     mogadm --lib=/path/to/lib
 
