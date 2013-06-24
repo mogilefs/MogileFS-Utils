@@ -769,10 +769,17 @@ sub cmd_device_add {
     ok('Device added.');
 }
 
+sub warn_on_drain {
+    my $args = shift;
+    if ($args->{status} && $args->{status} eq 'drain') {
+        print "***NOTE***: As of server version 2.40 'drain' has changed. See docs/wiki\n";
+    }
+}
+
 sub cmd_device_mark {
     my $args = shift;
 
-    print "***NOTE***: As of server version 2.40 'drain' has changed. See docs/wiki\n";
+    warn_on_drain($args);
     my $mogadm = mogadm();
     $mogadm->change_device_state($args->{hostname},
                                  $args->{devid},
@@ -789,7 +796,7 @@ sub cmd_device_modify {
     my $hostname = delete $args->{hostname};
     my $devid = delete $args->{devid};
 
-    print "***NOTE***: As of server version 2.40 'drain' has changed. See docs/wiki\n";
+    warn_on_drain($args);
     my $mogadm = mogadm();
     $mogadm->update_device($hostname, $devid, $args);
 
