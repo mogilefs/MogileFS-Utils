@@ -91,7 +91,7 @@ my $usage = {
                 des => "List the summary of devices, for each host.",
                 args => "[opts]",
                 opts => {
-                    "--status=s"  => "Devices of status A. Defaults to 'alive,readonly'",
+                    "--status=s"  => "Devices of status A. Defaults to 'alive,readonly,drain'",
                     "--hostname=s" => "Limit results to a given host.",
                 },
             },
@@ -845,7 +845,7 @@ sub cmd_device_summary {
     my $args = shift;
     my $hostname = $args->{hostname};
     my %show_state;
-    $show_state{$_} = 1 foreach split(/,/, ($args->{status} || "alive,readonly"));
+    $show_state{$_} = 1 foreach split(/,/, ($args->{status} || "alive,readonly,drain"));
 
     my $hosts = hosts();
     fail_text('no_hosts') unless $hosts;
