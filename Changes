@@ -1,3 +1,17 @@
+2.28 -- 2013-08-07
+
+   * mogadm: improve "device list" formatting (Eric Wong <normalperson@yhbt.net>)
+
+   * mogadm: include drain devices by default in summary (Eric Wong <normalperson@yhbt.net>)
+
+   * mogadm: do not warn about drain unless drain is specified (Eric Wong <normalperson@yhbt.net>)
+
+   * mogadm: improve error message on module load error (Eric Wong <normalperson@yhbt.net>)
+
+   * mogfiledebug: add --paths=<print|stat|fetch> option (Eric Wong <normalperson@yhbt.net>)
+
+   * mogfiledebug: show Last-Modified header if available (Eric Wong <normalperson@yhbt.net>)
+
 2.27 -- 2013-01-11
 
    * mogupload no longer slurps files into memory if the size is known ahead
