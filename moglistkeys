@@ -67,5 +67,5 @@ $mogc->foreach_key(prefix => $c->{key_prefix}, sub {
 });
 
 if ($mogc->errcode) {
-    print STDERR "Error listing files: ", $mogc->errstr, "\n";
+    die "Error listing files: ", $mogc->errstr, "\n";
 }

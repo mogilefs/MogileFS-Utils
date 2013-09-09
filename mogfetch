@@ -102,4 +102,5 @@ if (@resses) {
         print STDERR "Got errors while trying to fetch:\n";
         print STDERR $res->status_line, "\n";
     }
+    exit 1;
 }

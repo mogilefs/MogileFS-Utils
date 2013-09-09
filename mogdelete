@@ -54,5 +54,5 @@ my $mogc = $util->client;
 
 $mogc->delete($c->{key});
 if ($mogc->errcode) {
-    print STDERR "Error deleting file: ", $mogc->errstr, "\n";
+    die "Error deleting file: ", $mogc->errstr, "\n";
 }
