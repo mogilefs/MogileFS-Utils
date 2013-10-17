@@ -123,6 +123,9 @@ my $usage = {
                     "--weight=i" => "Positive numeric weight for device",
                 },
             },
+            next => {
+                des => "Show the next available devid.",
+            },
         },
     },
     domain => {
@@ -882,6 +885,21 @@ sub cmd_device_summary {
 
 }
 
+sub cmd_device_next {
+    my $devs = mogadm()->get_devices;
+    fail_text('no_devices') unless @$devs;
+    my $maxid = 0;
+    foreach my $dev (@$devs) {
+        my $devid = $dev->{devid};
+        if ($devid > $maxid) {
+            $maxid = $devid;
+        }
+    }
+
+    print($maxid + 1, "\n");
+    ok();
+}
+
 sub cmd_slave_list {
     my $mogadm = mogadm();
 
@@ -1474,6 +1492,8 @@ L</"HOST OPTIONS"> section.
 
 =item B<device list>
 
+=item B<device next>
+
 Functions for manipulating devices. For add and modify, device options are in
 the format of normal command line options and can include anything in the
 L</"DEVICE OPTIONS"> section.
@@ -1644,6 +1664,7 @@ Device manipulation:
     $ mogadm device list
     $ mogadm device summary
     $ mogadm device summary --status=dead,down
+    $ mogadm device next
     $ mogadm device add foo.local 16
     $ mogadm device add foo.local 17 --status=alive
     $ mogadm device mark foo.local 17 down
