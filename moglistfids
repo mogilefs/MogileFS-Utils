@@ -8,7 +8,7 @@ moglistfids -- Iterate fid/key data from a MogileFS installation
 
 Example utility for pulling all file data out of a MogileFS installation.
 Utilities like this can be built on for creating backup systems,
-Mogile<->Mogile syncronization systems, or Mogile->S3 syncronization.
+Mogile<->Mogile synchronization systems, or Mogile->S3 synchronization.
 
 This method is only a way of pulling new files which have existed since the
 last time it was checked, as there's no logging of deleted files.
