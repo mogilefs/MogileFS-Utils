@@ -1,4 +1,7 @@
 #!/usr/bin/perl
+
+eval 'exec /usr/bin/perl  -S $0 ${1+"$@"}'
+    if 0; # not running under some shell
 # vim:ts=4 sw=4 ft=perl et:
 # TODO:
 # YAML display mode
@@ -215,9 +218,9 @@ sub cmd_stats {
 
     if ($args{files} || $args{all}) {
         print "\nStatistics for files...\n";
-        printf "  %-20s %-10s %10s %11s %13s\n", 'domain', 'class', 'files',
+        printf "  %-20s %-20s %10s %11s %13s\n", 'domain', 'class', 'files',
             'size (m)', 'fullsize (m)';
-        printf "  -------------------- ----------- ---------- ----------- -------------\n";
+        printf "  -------------------- -------------------- ---------- ----------- -------------\n";
         foreach my $domain (sort keys %{$stats->{files}}) {
             my $classes = $stats->{files}->{$domain};
             foreach my $class (sort keys %$classes) {
@@ -225,11 +228,11 @@ sub cmd_stats {
                 my $files = $stat->[2];
                 my $size  = int($stat->[3] / 1024 / 1024);
                 my $total = int($stat->[4] / 1024 / 1024);
-                printf "  %-20s %-10s %10s %11s %13s\n", $domain, $class,
+                printf "  %-20s %-20s %10s %11s %13s\n", $domain, $class,
                     $files, $size, $total;
             }
         }
-        printf "  -------------------- ----------- ---------- ----------- -------------\n";
+        printf "  -------------------- -------------------- ---------- ----------- -------------\n";
     }
 
     if ($args{domains} && !($args{files} || $args{all})) {
@@ -248,19 +251,19 @@ sub cmd_stats {
 
     if ($args{replication} || $args{all}) {
         print "\nStatistics for replication...\n";
-        printf "  %-20s %-10s %10s %10s\n", 'domain', 'class', 'devcount', 'files';
-        printf "  -------------------- ----------- ---------- ----------\n";
+        printf "  %-20s %-20s %10s %10s\n", 'domain', 'class', 'devcount', 'files';
+        printf "  -------------------- -------------------- ---------- ----------\n";
         foreach my $domain (sort keys %{$stats->{replication}}) {
             my $classes = $stats->{replication}->{$domain};
             foreach my $class (sort keys %$classes) {
                 my $devcounts = $classes->{$class};
                 foreach my $devcount (sort { $a <=> $b } keys %$devcounts) {
                     my $files = $devcounts->{$devcount};
-                    printf "  %-20s %-10s %10s %10s\n", $domain, $class, $devcount, $files;
+                    printf "  %-20s %-20s %10s %10s\n", $domain, $class, $devcount, $files;
                 }
             }
         }
-        printf "  -------------------- ----------- ---------- ----------\n";
+        printf "  -------------------- -------------------- ---------- ----------\n";
     }
     # Now new stats.
     if ($args{'replication-queue'} || $args{all}) {
