@@ -1,3 +1,9 @@
+2.29 -- 2014-12-15
+
+   * Add exit codes when failing. (Jesus Roncero <jesus@we7.com>)
+
+   * mogadm: add "device next" sub-command (Eric Wong <normalperson@yhbt.net>)
+
 2.28 -- 2013-08-07
 
    * mogadm: improve "device list" formatting (Eric Wong <normalperson@yhbt.net>)
