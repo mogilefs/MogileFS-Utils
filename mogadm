@@ -38,7 +38,7 @@ my $usage = {
                 args => "<hostname> [opts]",
                 opts => {
                     "<hostname>"  => "Hostname of machine",
-                    "--status=s"  => "One of {alive,down}.  Default 'down'.",
+                    "--status=s"  => "One of {alive,down,readonly}.  Default 'down'.",
                     "--ip=s"      => "IP address of machine.",
                     "--port=i"    => "HTTP port of mogstored",
                     "--getport=i" => "Alternate HTTP port serving readonly traffic",
@@ -51,7 +51,7 @@ my $usage = {
                 args => "<hostname> [opts]",
                 opts => {
                     "<hostname>" => "Host name.",
-                    "--status=s" => "One of {alive,down}.",
+                    "--status=s" => "One of {alive,down,readonly}.",
                     "--ip=s"     => "IP address of machine.",
                     "--port=i"   => "HTTP port of mogstored",
                     "--getport=i" => "Alternate HTTP port serving readonly traffic",
@@ -64,7 +64,7 @@ my $usage = {
                 args => "<hostname> <status>",
                 opts => {
                     "<hostname>" => "Host name to bring up or down.",
-                    "<status>"   => "One of {alive,down}.",
+                    "<status>"   => "One of {alive,down,readonly}.",
                 }
             },
             delete => {
@@ -1597,7 +1597,7 @@ network.
 
 =item B<--status=E<lt>host statusE<gt>>
 
-Valid host statuses are one of: alive, down, dead.
+Valid host statuses are one of: alive, down, readonly.
 
 =back
 
