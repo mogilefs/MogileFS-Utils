@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 package MogileFS::Utils;
 
-our $VERSION = '2.29';
+our $VERSION = '2.30';
 
 use Getopt::Long;
 use MogileFS::Client;

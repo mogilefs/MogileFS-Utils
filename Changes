@@ -1,3 +1,7 @@
+2.30 -- 2018-01-19
+
+   * mogadm: document "readonly" state for hosts (Eric Wong <e@80x24.org>)
+
 2.29 -- 2014-12-15
 
    * Add exit codes when failing. (Jesus Roncero <jesus@we7.com>)
