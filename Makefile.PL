@@ -4,7 +4,7 @@ use strict;
 use ExtUtils::MakeMaker;
 
 WriteMakefile(
-    NAME                        => 'MogileFS-Utils',
+    NAME                        => 'MogileFS::Utils',
     VERSION_FROM                => 'lib/MogileFS/Utils.pm',
     AUTHOR                      => 'Brad Fitzpatrick <brad@danga.com>',
     ABSTRACT                    => 'MogileFS utilities',
